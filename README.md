@@ -216,3 +216,8 @@ __pycache__/
 .env
 *.log
 .DS_Store
+pip install -r requirements.txt
+export XAI_API_KEY="your_key_here"
+curl -X POST "http://localhost:8000/process" \
+-H "Content-Type: application/json" \
+-d '{"query": "Explain quantum entanglement and generate a visualization."}'
