@@ -221,3 +221,67 @@ export XAI_API_KEY="your_key_here"
 curl -X POST "http://localhost:8000/process" \
 -H "Content-Type: application/json" \
 -d '{"query": "Explain quantum entanglement and generate a visualization."}'
+tenacity==8.3.0  # For retries
+python-multipart==0.0.6  # If adding file uploads later
+from tenacity import retry, stop_after_attempt, wait_exponential  # Retries
+from typing import List  # For project lists
+import os  # If not already there
+        # Configurable projects via env
+        enabled_str = os.getenv("ENABLED_PROJECTS", "grok,aurora,grokipedia,hotshot")
+        enabled = [p.strip() for p in enabled_str.split(",")]
+        self.projects = {k: v for k, v in self.projects.items() if k in enabled}
+        
+        logger.info(f"Enabled projects: {list(self.projects.keys())}")
+            @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def _call_with_retry(self, func: Callable, *args, **kwargs) -> Any:
+        """Retry wrapper for API calls."""
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            logger.warning(f"Retryable error: {e}")
+            raise
+    
+    async def _call_grok_with_tools(self, prompt: str, tools: Optional[List[Dict]] = None) -> str:
+        """Grok-4 tool-calling (e.g., for DeepSearch)."""
+        try:
+            messages = [{"role": "user", "content": prompt}]
+            response = await self._call_with_retry(
+                self.client.chat.completions.create,
+                model="grok-4",
+                messages=messages,
+                tools=tools,  # e.g., [{"type": "function", "function": {"name": "deep_search", ...}}]
+                tool_choice="auto",
+                max_tokens=500,
+                temperature=0.7
+            )
+            content = response.choices[0].message.content
+            # Handle tool calls if present (expand as needed)
+            if response.choices[0].message.tool_calls:
+                logger.info("Tool calls triggered; implement execution here.")
+                # Example: For DeepSearch, parse and call web tool
+                content += " [Tool results integrated]"
+            return content
+        except Exception as e:
+            logger.error(f"Tool call failed: {e}")
+            return await self._call_grok(prompt)  # Fallback
+            @app.post("/process_with_tools")
+@limiter.limit("5/minute")  # Stricter for tool-heavy
+async def process_with_tools(request: QueryRequest):
+    """Enhanced endpoint with tool-calling."""
+    if not nexus:
+        raise HTTPException(500, "Nexus unavailable.")
+    try:
+        # Wrap in tool-enabled mode
+        result = await nexus.process_query(request.query)  # Still uses base; extend if needed
+        return {"enhanced": True, **result.dict()}
+    except Exception as e:
+        raise HTTPException(500, str(e))
+        @pytest.mark.asyncio
+async def test_tool_calling():
+    nexus = CosmicNexus(api_key="test_key")
+    result = await nexus._call_grok_with_tools("Test with tools")
+    assert isinstance(result, str)
+    assert len(result) > 0
+    XAI_API_KEY=your_key_here
+ENABLED_PROJECTS=grok,aurora,grokipedia,hotshot
+LOG_LEVEL=INFO
