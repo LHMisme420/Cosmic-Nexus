@@ -79,20 +79,39 @@ async def process_with_tools(request: QueryRequest):
         """Main orchestrator: Plan, execute subtasks, synthesize."""
         # Step 1: Grok plans the tasks
         plan_prompt = f"Analyze: {user_input}. Break into subtasks for available projects (aurora, grokipedia, hotshot). Output as JSON: {{'aurora': 'task', 'grokipedia': 'task', 'hotshot': 'task'}}"
-        plan_raw = self._call_grok(plan_prompt)
+    
+tasks = {
+    'aurora': user_input,  # Default if no parse
+    'grokipedia': user_input,
+    'hotshot': f"Demo {user_input}"
+}
+
+# NEW:
+tasks = self.parse_plan_json(plan_raw)  # Note: pass user_input if needed in method
         # Simple JSON parse (in prod, use json.loads with error handling)
         tasks = {
-            'aurora': user_input,  # Default if no parse
-            'grokipedia': user_input,
-            'hotshot': f"Demo {user_input}"
-        }
-        
-        # Step 2: Parallel execution (simulate with seq for simplicity)
-        results = {}
-        for project, task in tasks.items():
-            if project in self.projects:
-                results[project] = self.projects[project](task)
-                # Step 1: Plan with optional tools
+           # OLD (lines ~85-95):
+results = {}
+for project, task in tasks.items():
+    if project in self.projects:
+        if project == 'grok':
+            results[project] = await self.projects[project](task)
+        else:
+            results[project] = self.projects[project](task)  # Sync for mocks
+
+# NEW:
+# Step 2: Parallel execution
+async def execute_task(project, task):
+    if project in self.projects:
+        if project == 'grok':
+            return project, await self.projects[project](task)
+        else:
+            return project, self.projects[project](task)  # Sync for mocks
+
+tasks_coros = [execute_task(project, task) for project, task in tasks.items()]
+parallel_results = await asyncio.gather(*tasks_coros, return_exceptions=True)
+results = {proj: res if not isinstance(res, Exception) else f"Error in {proj}: {res}" 
+           for proj, res in parallel_results}
         tools = [{"type": "function", "function": {"name": "deep_search", "description": "Search web for fresh facts", "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}}}]
         plan_prompt = f"Analyze: {user_input}. Break into subtasks for available projects (aurora, grokipedia, hotshot). Output as JSON: {{'aurora': 'task', 'grokipedia': 'task', 'hotshot': 'task'}}"
         plan_raw = await self._call_grok_with_tools(plan_prompt, tools=tools if "deep" in user_input.lower() else None)
