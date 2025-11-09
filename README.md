@@ -384,3 +384,25 @@ async def test_tool_calling():
     result = await nexus._call_grok_with_tools("Test with tools")
     assert isinstance(result, str)
     assert len(result) > 0
+# Dynamic font sizing based on message length
+def get_optimal_fontsize(message):
+    base_size = 16
+    if len(message) > 150:
+        return base_size - 4
+    elif len(message) > 100:
+        return base_size - 2
+    return base_size
+
+fontsize = get_optimal_fontsize(message)
+ax.text(4, 3, message, ha='center', va='center', fontsize=fontsize, fontweight='bold',
+        wrap=True, color='white', bbox=dict(boxstyle="round,pad=0.6", facecolor='black', alpha=0.7))
+        # Different aspect ratios for different platforms
+sizes = {
+    'instagram': (8, 8),    # Square
+    'twitter': (16, 9),     # Wide
+    'story': (9, 16)        # Vertical
+}parser.add_argument('--preview', action='store_true', help="Show meme without saving")
+if args.preview:
+    plt.show()
+else:
+    plt.savefig(filename, bbox_inches='tight', dpi=150, facecolor='none', edgecolor='none')
