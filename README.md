@@ -317,6 +317,30 @@ async def test_tool_calling():
     result = await nexus._call_grok_with_tools("Test with tools")
     assert isinstance(result, str)
     assert len(result) > 0
+    def generate_meme():
+    message = random.choice(POSITIVE_CONTENT)
+    
+    # Enhanced visual options
+    visual_styles = ['gradient', 'solid', 'pattern', 'sunburst']
+    style = random.choice(visual_styles)
+    
+    fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    ax.set_xlim(0, 8)
+    ax.set_ylim(0, 6)
+    ax.axis('off')
+    
+    if style == 'gradient':
+        # Your existing gradient code
+        color1 = random.choice(color_options)
+        color2 = random.choice([c for c in color_options if c != color1])
+        gradient = np.linspace(0, 1, 600)[:, np.newaxis]
+        cmap = mcolors.LinearSegmentedColormap.from_list("my_gradient", [color1, color2])
+        ax.imshow(gradient, aspect='auto', cmap=cmap, extent=[0, 8, 0, 6])
+    elif style == 'solid':
+        # Solid color background
+        bg_color = random.choice(color_options)
+        ax.add_patch(patches.Rectangle((0, 0), 8, 6, facecolor=bg_color))
+    # Add more styles as needed...
     XAI_API_KEY=your_key_here
 ENABLED_PROJECTS=grok,aurora,grokipedia,hotshot
 LOG_LEVEL=INFO
